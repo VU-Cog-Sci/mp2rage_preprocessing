@@ -1,3 +1,7 @@
 [submodule "fmriprep"]
 	path = fmriprep
 	url = git@github.com:Gilles86/fmriprep.git
+[submodule "nighres"]
+	path = nighres
+	url = git@github.com:Gilles86/nighres.git
+	branch = release-1.1.0b_docker
