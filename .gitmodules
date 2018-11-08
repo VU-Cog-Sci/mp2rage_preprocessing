@@ -1,0 +1,3 @@
+[submodule "fmriprep"]
+	path = fmriprep
+	url = git@github.com:Gilles86/fmriprep.git

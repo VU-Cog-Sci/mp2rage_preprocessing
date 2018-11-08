@@ -1,0 +1,12 @@
+version: '2'
+services:
+  mp2rage_preproc:
+    entrypoint: zsh
+    build: .
+    volumes:
+      - ./analysis:/src
+      - $SOURCEDATA:/sourcedata
+      - $DERIVATIVES:/derivatives
+      - /tmp/workflow_folders:/workflow_folders
+      - $FREESURFER_HOME/license.txt:/opt/freesurfer-6.0.1/license.txt
+      - ./crashdumps:/crashdumps
