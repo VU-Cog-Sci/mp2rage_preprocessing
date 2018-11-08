@@ -31,9 +31,12 @@ ENV JAVA_HOME /docker-java-home
 ENV JCC_JDK /docker-java-home
 RUN apt-get install -y jcc
 
-RUN conda create --name nighres python=2.7 numpy scipy ipython jcc
-RUN git clone https://github.com/nighres/nighres /nighres && \
-    cd /nighres && /bin/bash -c "cd /nighres && source activate nighres && ./build.sh && python setup.py install && pip install pybids sklearn nilearn"
+COPY nighres /nighres
+
+RUN cd /nighres \
+    && python3 -m pip install --upgrade pip jcc \
+    && ./build.sh \
+    && bash -c "source activate neuro && python setup.py install"
     
 RUN cd /tmp \
     && wget -q https://github.com/spinoza-centre/spynoza/archive/7t_hires.zip \
