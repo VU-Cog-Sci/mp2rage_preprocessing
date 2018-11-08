@@ -42,3 +42,8 @@ You will now be in an virtual environment with ZSH, where you can run all the sc
 
 # Step 3: fmriprep
 To be implemented (inside this docker or outside this docker?)
+
+3 experiments to run:
+ * Only average T1w
+ * Average T1w and average INV2 as FLAIR
+ * Average T1w and average T1map as T2w
