@@ -11,3 +11,4 @@ services:
       - $FREESURFER_HOME/license.txt:/opt/freesurfer-6.0.1/license.txt
       - ./crashdumps:/crashdumps
       - ./pymp2rage:/pymp2rage
+      - ./pybids:/pybids

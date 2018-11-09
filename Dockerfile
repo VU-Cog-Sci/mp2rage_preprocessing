@@ -46,8 +46,12 @@ RUN bash -c "source activate neuro && pip uninstall -y spynoza && cd /spynoza &&
 COPY ./analysis /src
 COPY nipype.cfg /root/.nipype/nipype.cfg
 
-COPY fmriprep /fmriprep
-COPY pymp2rage /pymp2rage
+COPY ./fmriprep /fmriprep
 
-RUN bash -c "source activate neuro && pip uninstall -y fmriprep && cd /fmriprep && python setup.py develop" \
-    && bash -c "source activate neuro && pip uninstall -y pymp2rage && cd /pymp2rage && python setup.py develop"
+RUN bash -c "source activate neuro && pip uninstall -y fmriprep && cd /fmriprep && python setup.py develop"
+
+COPY pymp2rage /pymp2rage
+RUN bash -c "source activate neuro && pip uninstall -y pymp2rage && cd /pymp2rage && python setup.py develop"
+
+COPY pybids /pybids
+RUN bash -c "source activate neuro && pip uninstall -y pybids && cd /pybids && python setup.py develop"
