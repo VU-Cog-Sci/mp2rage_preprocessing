@@ -47,7 +47,7 @@ COPY ./analysis /src
 COPY nipype.cfg /root/.nipype/nipype.cfg
 
 COPY fmriprep /fmriprep
+COPY pymp2rage /pymp2rage
 
-RUN git clone https://github.com/Gilles86/pymp2rage /tmp/pymp2rage \
-    && bash -c "source activate neuro && pip uninstall -y fmriprep && cd /fmriprep && python setup.py develop" \
-    && bash -c "source activate neuro && cd /tmp/pymp2rage && python setup.py install"
+RUN bash -c "source activate neuro && pip uninstall -y fmriprep && cd /fmriprep && python setup.py develop" \
+    && bash -c "source activate neuro && pip uninstall -y pymp2rage && cd /pymp2rage && python setup.py develop"

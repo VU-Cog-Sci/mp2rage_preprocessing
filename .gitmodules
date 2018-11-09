@@ -5,3 +5,6 @@
 	path = nighres
 	url = git@github.com:Gilles86/nighres.git
 	branch = release-1.1.0b_docker
+[submodule "pymp2rage"]
+	path = pymp2rage
+	url = git@github.com:Gilles86/pymp2rage.git
