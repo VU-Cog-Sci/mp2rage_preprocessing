@@ -23,9 +23,13 @@ def main(sourcedata,
     if session is None:
         session = '.*'
 
-    wf = init_combine_mp2rage_wf(sourcedata=sourcedata,
+    wf_name = 'combine_mp2rages_{}'.format(subject)
+
+    wf = init_combine_mp2rage_wf(name=wf_name,
+                                 sourcedata=sourcedata,
                                  derivatives=derivatives)
     wf.base_dir = '/workflow_folders'
+
 
 
     wf.inputs.inputnode.subject = subject
@@ -144,7 +148,7 @@ def init_combine_mp2rage_wf(sourcedata,
 
     rename = pe.Node(niu.Rename(use_fullpath=True), name='rename')
     rename.inputs.format_string = '%(path)s/sub-%(subject_id)s_ses-%(session)s_MPRAGE.nii.gz'
-    rename.inputs.parse_string = '(?P<path>.+)/sub-(?P<subject_id>.+)_ses-(?P<session>.+)_acq-.+_MPRAGE.nii.gz'
+    rename.inputs.parse_string = '(?P<path>.+)/sub-(?P<subject_id>.+)_ses-(?P<session>.+)_acq-.+_MPRAGE.nii(.gz)?'
 
     wf.connect(get_first_inversion, ('inv1', _pickone), rename, 'in_file')
     wf.connect(rename, 'out_file', ds_t1w, 'source_file')
@@ -262,11 +266,15 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
                                acquisition=acquisition,
                                suffix='MPRAGE', 
                                extensions=['.nii', '.nii.gz'])
+    print(mp2rage_files)
 
     reg = re.compile('.*/sub-(?P<subject>.+)_ses-(?P<session>.+)_acq-(?P<acquisition>.+)_inv-(?P<inv>[0-9]+)(_echo-(?P<echo>[0-9]+))?(_part-(?P<part>.+))?_MPRAGE.(?P<extension>nii|nii\.gz|json)')
 
     data = []
     for file in mp2rage_files:
+        print(file.filename)
+        if not reg.match(file.filename):
+            print('ERROR WITH {}'.format(file))
         data.append(reg.match(file.filename).groupdict())
         data[-1]['filename'] = file.filename
     data = pd.DataFrame(data)
@@ -276,9 +284,10 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
 
     json_data = []
     for file in json_files:
-        json_data.append(reg.match(file).groupdict())
-        with open(file) as f:
-            json_data[-1].update(json.load(f))
+        if reg.match(file):
+            json_data.append(reg.match(file).groupdict())
+            with open(file) as f:
+                json_data[-1].update(json.load(f))
 
     json_data = pd.DataFrame(json_data)
     json_data.drop(columns=['part', 'extension'], inplace=True)
