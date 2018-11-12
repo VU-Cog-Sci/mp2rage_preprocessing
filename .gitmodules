@@ -11,3 +11,7 @@
 [submodule "pybids"]
 	path = pybids
 	url = git@github.com:Gilles86/pybids.git
+[submodule "spynoza"]
+	path = spynoza
+	url = git@github.com:spinoza-centre/spynoza.git
+	branch = 7t_hires

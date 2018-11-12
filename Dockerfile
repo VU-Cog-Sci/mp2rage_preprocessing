@@ -55,3 +55,6 @@ RUN bash -c "source activate neuro && pip uninstall -y pymp2rage && cd /pymp2rag
 
 COPY pybids /pybids
 RUN bash -c "source activate neuro && pip uninstall -y pybids && cd /pybids && python setup.py develop"
+
+COPY spynoza /spynoza
+RUN bash -c "source activate neuro && pip uninstall -y spynoza && cd /pybids && python setup.py develop"
