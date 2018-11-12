@@ -12,3 +12,4 @@ services:
       - ./crashdumps:/crashdumps
       - ./pymp2rage:/pymp2rage
       - ./pybids:/pybids
+      - ./nighres:/nighres
