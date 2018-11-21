@@ -1,1 +1,1 @@
-docker-compose run mp2rage_preproc
+docker-compose run --rm mp2rage_preproc
