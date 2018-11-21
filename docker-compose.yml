@@ -13,3 +13,4 @@ services:
       - ./pymp2rage:/pymp2rage
       - ./pybids:/pybids
       - ./nighres:/nighres
+      - ./fmriprep:/fmriprep
