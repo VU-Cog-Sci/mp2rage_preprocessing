@@ -80,7 +80,8 @@ def init_combine_mp2rage_wf(sourcedata,
 
     wf.connect([ (get_parameters, make_t1w, [('mp2rage_parameters', 'mp2rage_parameters')]) ])
 
-    get_first_inversion = pe.MapNode(niu.Function(function=get_inv, input_names=['mp2rage_parameters', 'inv', 'echo'], output_names='inv1'),
+    get_first_inversion = pe.MapNode(niu.Function(function=get_inv,
+                                                  input_names=['mp2rage_parameters', 'inv', 'echo'], output_names='inv1'),
                                      iterfield=['mp2rage_parameters'],
                                      name='get_first_inversion')
 
