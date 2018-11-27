@@ -202,11 +202,21 @@ def init_masking_wf(name='mask_wf',
                                          suffix='T1w'),
                                          name='ds_t1w_keep_dura')
 
+    ds_dura = pe.Node(DerivativesDataSink(base_directory=derivatives,
+                                         keep_dtype=False,
+                                         out_path_base='masked_mp2rages',
+                                         desc='dura',
+                                         suffix='mask'),
+                                         name='ds_dura')
+
     wf.connect(inputnode, 't1w', ds_t1w, 'source_file')
     wf.connect(mask_t1w, 'out_file', ds_t1w, 'in_file')
 
     wf.connect(inputnode, 't1w', ds_t1w_keep_dura, 'source_file')
     wf.connect(mask_t1w_keep_dura, 'out_file', ds_t1w_keep_dura, 'in_file')
+
+    wf.connect(inputnode, 't1w', ds_dura, 'source_file')
+    wf.connect(threshold_dura, 'out_file', ds_dura, 'in_file')
 
     return wf
 
