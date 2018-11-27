@@ -85,27 +85,27 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
 
     ix = pd.IndexSlice
 
-    MPRAGE_tr = data.loc[(acquisition, 1, 1, 'mag'), 'InversionRepetitionTime'].values[0]
-    invtimesAB = data.loc[(acquisition, 1, 1, 'mag'), 'InversionTime'].values[0], data.loc[(acquisition, 2, 1, 'mag'), 'InversionTime'].values[0]
+    MPRAGE_tr = data.loc[(acquisition, 1, 1, 'mag'), 'InversionRepetitionTime']
+    invtimesAB = data.loc[(acquisition, 1, 1, 'mag'), 'InversionTime'], data.loc[(acquisition, 2, 1, 'mag'), 'InversionTime']
     nZslices = np.array([data.loc[(acquisition, 1, 1, 'mag'), 'NumberShots'], data.loc[(acquisition, 2, 1, 'mag'), 'NumberShots']])
     nZslices = nZslices.astype(float).ravel()
     nZslices *= np.array([.5, .5])
     nZslices = nZslices.astype(int)
 
-    flipangleABdegree = data.loc[(acquisition, 1, 1, 'mag'), 'FlipAngle'].values[0], data.loc[(acquisition, 2, 1, 'mag'), 'FlipAngle'].values[0]
+    flipangleABdegree = data.loc[(acquisition, 1, 1, 'mag'), 'FlipAngle'], data.loc[(acquisition, 2, 1, 'mag'), 'FlipAngle']
 
-    FLASH_tr = data.loc[(acquisition, 1, 1, 'mag'), 'ExcitationRepetitionTime'].values[0], data.loc[(acquisition, 2, 1, 'mag'), 'ExcitationRepetitionTime'].values[0]
+    FLASH_tr = data.loc[(acquisition, 1, 1, 'mag'), 'ExcitationRepetitionTime'], data.loc[(acquisition, 2, 1, 'mag'), 'ExcitationRepetitionTime']
 
-    inv1 = data.loc[(acquisition, 1, 1, 'mag')].filename.values[0]
-    inv1ph = data.loc[(acquisition, 1, 1, 'phase')].filename.values[0]
+    inv1 = data.loc[(acquisition, 1, 1, 'mag')].filename
+    inv1ph = data.loc[(acquisition, 1, 1, 'phase')].filename
 
     if multi_echo_bool:
         inv2 = data.loc[(ix[acquisition, 2, :, 'mag'])].filename.tolist()
         inv2ph = data.loc[(ix[acquisition, 2, :, 'phase'])].filename.tolist()
         echo_times = data.loc[(ix[acquisition, 2, :, 'mag'])].EchoTime.tolist()
     else:
-        inv2 = data.loc[(acquisition, 2, 1, 'mag')].filename.values[0]
-        inv2ph = data.loc[(acquisition, 2, 1, 'phase')].filename.values[0]
+        inv2 = data.loc[(acquisition, 2, 1, 'mag')].filename
+        inv2ph = data.loc[(acquisition, 2, 1, 'phase')].filename
 
     pars = {'MPRAGE_tr':MPRAGE_tr,
             'invtimesAB':invtimesAB,
