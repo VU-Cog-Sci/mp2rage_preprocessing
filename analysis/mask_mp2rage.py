@@ -41,7 +41,7 @@ def add_skull_to_t1w(t1w, inv2, t1w_mask, dura_mask=None):
 
     _, fn, ext= split_filename(t1w)
 
-    new_t1w = image.math_img('t1w * t1w_mask * np.mean(inv2[t1w_mask == 1]) + t1w * inv2 * (1-t1w_mask)',
+    new_t1w = image.math_img('t1w * t1w_mask * np.mean(inv2[t1w_mask == 1]/np.max(inv2)) + t1w * inv2/np.max(inv2) * (1-t1w_mask)',
                               t1w=t1w,
                               t1w_mask=t1w_mask,
                               inv2=inv2)
@@ -124,9 +124,6 @@ def init_masking_wf(name='mask_wf',
 
     wf.connect(inputnode, 'inv2', n4, 'input_image')
 
-    afni_mask = pe.Node(afni.Automask(outputtype='NIFTI_GZ'),
-                        name='afni_mask')
-    wf.connect(n4, 'output_image', afni_mask, 'in_file')
 
     bet = pe.Node(fsl.BET(mask=True, skull=True), name='bet')
     wf.connect(n4, 'output_image', bet, 'in_file')
@@ -150,13 +147,19 @@ def init_masking_wf(name='mask_wf',
     wf.connect(nighres_brain_extract, 'brainmask', dura_masker, 'inv2_mask')
 
 
-    mask_t1map = pe.Node(fsl.ApplyMask(), name='mask_t1map')
-    wf.connect(inputnode, 't1map', mask_t1map, 'in_file')
-    wf.connect(bet, 'mask_file', mask_t1map, 'mask_file')
+
+    afni_mask = pe.Node(afni.Automask(outputtype='NIFTI_GZ',
+                                      clfrac=0.5),
+                        name='afni_mask')
+    wf.connect(bet, 'out_file', afni_mask, 'in_file')
 
     threshold_dura = pe.Node(fsl.Threshold(thresh=.8, args='-bin'),
                              name='threshold_dura')
     wf.connect(dura_masker, 'duramask', threshold_dura, 'in_file')
+
+    mask_t1map = pe.Node(fsl.ApplyMask(), name='mask_t1map')
+    wf.connect(inputnode, 't1map', mask_t1map, 'in_file')
+    wf.connect(afni_mask, 'out_file', mask_t1map, 'mask_file')
 
     mask_t1w = pe.Node(niu.Function(function=add_skull_to_t1w,
                                     input_names=['t1w', 'inv2', 't1w_mask', 'dura_mask'],
@@ -166,7 +169,7 @@ def init_masking_wf(name='mask_wf',
 
     wf.connect(inputnode, 't1w', mask_t1w, 't1w')
     wf.connect(n4, 'output_image', mask_t1w, 'inv2')
-    wf.connect(bet, 'mask_file', mask_t1w, 't1w_mask')
+    wf.connect(afni_mask, 'out_file', mask_t1w, 't1w_mask')
     wf.connect(threshold_dura, 'out_file', mask_t1w, 'dura_mask')
 
     mask_t1w_keep_dura = pe.Node(niu.Function(function=add_skull_to_t1w,
@@ -175,7 +178,7 @@ def init_masking_wf(name='mask_wf',
                        name='mask_t1w_keep_dura')
     wf.connect(inputnode, 't1w', mask_t1w_keep_dura, 't1w')
     wf.connect(n4, 'output_image', mask_t1w_keep_dura, 'inv2')
-    wf.connect(bet, 'mask_file', mask_t1w_keep_dura, 't1w_mask')
+    wf.connect(afni_mask, 'out_file', mask_t1w_keep_dura, 't1w_mask')
 
     ds_t1map = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
@@ -209,6 +212,13 @@ def init_masking_wf(name='mask_wf',
                                          suffix='mask'),
                                          name='ds_dura')
 
+    ds_afni = pe.Node(DerivativesDataSink(base_directory=derivatives,
+                                         keep_dtype=False,
+                                         out_path_base='masked_mp2rages',
+                                         desc='afnibrain',
+                                         suffix='mask'),
+                                         name='ds_afni')
+
     wf.connect(inputnode, 't1w', ds_t1w, 'source_file')
     wf.connect(mask_t1w, 'out_file', ds_t1w, 'in_file')
 
@@ -217,6 +227,9 @@ def init_masking_wf(name='mask_wf',
 
     wf.connect(inputnode, 't1w', ds_dura, 'source_file')
     wf.connect(threshold_dura, 'out_file', ds_dura, 'in_file')
+
+    wf.connect(inputnode, 't1w', ds_afni, 'source_file')
+    wf.connect(afni_mask, 'out_file', ds_afni, 'in_file')
 
     return wf
 
