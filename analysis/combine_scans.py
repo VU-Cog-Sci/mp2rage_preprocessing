@@ -13,6 +13,7 @@ import nipype.interfaces.utility as niu
 from nipype.interfaces import fsl
 from nipype.interfaces import ants
 from nipype.interfaces.c3 import C3dAffineTool
+from nipype.interfaces.image import Reorient
 from utils import _pickone, get_mp2rage_pars, fit_mp2rage, get_inv
 
 def main(sourcedata,
@@ -153,8 +154,11 @@ def init_combine_mp2rage_wf(sourcedata,
     rename.inputs.parse_string = '(?P<path>.+)/sub-(?P<subject_id>.+)_ses-(?P<session>.+)_acq-.+_MPRAGE.nii(.gz)?'
 
     wf.connect(get_first_inversion, ('inv1', _pickone), rename, 'in_file')
+    reorient_t1w = pe.Node(Reorient(),
+                           name='reorient_t1w')
+    wf.connect(transform_t1w_wf, 'outputnode.mean_image', reorient_t1w, 'in_file')
+    wf.connect(reorient_t1w, 'out_file', ds_t1w, 'in_file')
     wf.connect(rename, 'out_file', ds_t1w, 'source_file')
-    wf.connect(transform_t1w_wf, 'outputnode.mean_image', ds_t1w, 'in_file')
 
 
     ds_t1map = pe.Node(DerivativesDataSink(base_directory=derivatives,
@@ -165,8 +169,11 @@ def init_combine_mp2rage_wf(sourcedata,
                                          name='ds_t1map')
 
 
+    reorient_t1map = pe.Node(Reorient(),
+                           name='reorient_t1map')
     wf.connect(rename, 'out_file', ds_t1map, 'source_file')
-    wf.connect(transform_t1map_wf, 'outputnode.mean_image', ds_t1map, 'in_file')
+    wf.connect(transform_t1map_wf, 'outputnode.mean_image', reorient_t1map, 'in_file')
+    wf.connect(reorient_t1map, 'out_file', ds_t1map, 'in_file')
 
     ds_inv2 = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
@@ -175,9 +182,12 @@ def init_combine_mp2rage_wf(sourcedata,
                                          space='average'),
                                          name='ds_inv2')
 
+    reorient_inv2 = pe.Node(Reorient(),
+                            name='reorient_inv2')
 
     wf.connect(rename, 'out_file', ds_inv2, 'source_file')
-    wf.connect(transform_inv2_wf, 'outputnode.mean_image', ds_inv2, 'in_file')
+    wf.connect(transform_inv2_wf, 'outputnode.mean_image', reorient_inv2, 'in_file')
+    wf.connect(reorient_inv2, 'out_file', ds_inv2, 'in_file')
 
 
     return wf
