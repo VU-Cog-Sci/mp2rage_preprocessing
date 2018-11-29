@@ -75,6 +75,8 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
     data['echo'] = data.echo.astype(int)
     data.set_index(['acquisition', 'inv', 'echo', 'part'], inplace=True) 
 
+    print(data)
+
     B1map = layout.get(subject=subject, session=session, suffix='B1map', extensions=['.nii', '.nii.gz'])
     
     if len(B1map) > 0:
@@ -96,16 +98,16 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
 
     FLASH_tr = data.loc[(acquisition, 1, 1, 'mag'), 'ExcitationRepetitionTime'], data.loc[(acquisition, 2, 1, 'mag'), 'ExcitationRepetitionTime']
 
-    inv1 = data.loc[(acquisition, 1, 1, 'mag')].filename
-    inv1ph = data.loc[(acquisition, 1, 1, 'phase')].filename
+    inv1 = data.loc[(acquisition, 1, 1, 'mag'), 'filename']
+    inv1ph = data.loc[(acquisition, 1, 1, 'phase'), 'filename']
 
     if multi_echo_bool:
         inv2 = data.loc[(ix[acquisition, 2, :, 'mag'])].filename.tolist()
         inv2ph = data.loc[(ix[acquisition, 2, :, 'phase'])].filename.tolist()
         echo_times = data.loc[(ix[acquisition, 2, :, 'mag'])].EchoTime.tolist()
     else:
-        inv2 = data.loc[(acquisition, 2, 1, 'mag')].filename
-        inv2ph = data.loc[(acquisition, 2, 1, 'phase')].filename
+        inv2 = data.loc[(acquisition, 2, 1, 'mag'), 'filename']
+        inv2ph = data.loc[(acquisition, 2, 1, 'phase'), 'filename']
 
     pars = {'MPRAGE_tr':MPRAGE_tr,
             'invtimesAB':invtimesAB,
