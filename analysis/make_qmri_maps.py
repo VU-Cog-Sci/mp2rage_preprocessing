@@ -3,6 +3,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as niu
 from utils import get_mp2rage_pars, fit_mp2rage, _pickone, get_inv
 from fmriprep.interfaces import DerivativesDataSink
+from nipype.interfaces.image import Reorient
 
 def main(sourcedata,
          derivatives,
@@ -82,6 +83,7 @@ def init_qmri_wf(sourcedata,
     rename = pe.Node(niu.Rename(use_fullpath=True), name='rename')
     rename.inputs.format_string = '%(path)s/sub-%(subject_id)s_ses-%(session)s_MPRAGE.nii.gz'
     rename.inputs.parse_string = '(?P<path>.+)/sub-(?P<subject_id>.+)_ses-(?P<session>.+)_acq-.+_MPRAGE.nii(.gz)?'
+    
 
 
     ds_S0 = pe.Node(DerivativesDataSink(base_directory=derivatives,
@@ -90,9 +92,12 @@ def init_qmri_wf(sourcedata,
                                          suffix='S0',
                                          space='average'),
                                          name='ds_S0')
+    reorient_s0 = pe.Node(Reorient(),
+                          name='reorient_s0')
     wf.connect(get_first_inversion, ('inv1', _pickone), rename, 'in_file')
     wf.connect(rename, 'out_file', ds_S0, 'source_file')
-    wf.connect(get_qmri, 'S0map', ds_S0, 'in_file')
+    wf.connect(get_qmri, 'S0map', reorient_s0, 'in_file')
+    wf.connect(reorient_s0, 'out_file', ds_S0, 'in_file')
 
     ds_t2starmap = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
@@ -100,8 +105,11 @@ def init_qmri_wf(sourcedata,
                                          suffix='t2starmap',
                                          space='average'),
                                          name='ds_t2starmap')
+    reorient_t2starmap = pe.Node(Reorient(),
+                          name='reorient_t2starmap')
     wf.connect(rename, 'out_file', ds_t2starmap, 'source_file')
-    wf.connect(get_qmri, 't2starmap', ds_t2starmap, 'in_file')
+    wf.connect(get_qmri, 't2starmap', reorient_t2starmap, 'in_file')
+    wf.connect(reorient_t2starmap, 'out_file', ds_t2starmap, 'in_file')
 
     ds_t2starw = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
@@ -109,8 +117,11 @@ def init_qmri_wf(sourcedata,
                                          suffix='t2starw',
                                          space='average'),
                                          name='ds_t2starw')
+    reorient_t2w = pe.Node(Reorient(),
+                          name='reorient_t2w')
     wf.connect(rename, 'out_file', ds_t2starw, 'source_file')
-    wf.connect(get_qmri, 't2starw', ds_t2starw, 'in_file')
+    wf.connect(get_qmri, 't2starw', reorient_t2w, 'in_file')
+    wf.connect(reorient_t2w, 'out_file', ds_t2starw, 'in_file')
 
     return wf
 
@@ -120,12 +131,10 @@ if __name__ == '__main__':
                         type=str,
                         help="subject to process")
     parser.add_argument('session', 
-                        nargs='?', 
-                        default=None,
+                        default='anat',
                         help="subject to process")
 
     parser.add_argument('acquisition', 
-                        nargs=1, 
                         default='memp2rage',
                         help="Acquisition to process")
 
