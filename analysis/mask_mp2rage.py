@@ -34,7 +34,7 @@ def nighres_dura_masker(inv2, inv2_mask):
     return results['result'].get_filename()
 
 
-def add_skull_to_t1w(t1w, inv2, t1w_mask, 
+def mask_t1w(t1w, inv2, t1w_mask, 
                      manual_inside=None, manual_outside=None,
                      dura_mask=None):
 
@@ -43,8 +43,7 @@ def add_skull_to_t1w(t1w, inv2, t1w_mask,
     from nipype.utils.filemanip import split_filename
     from scipy import ndimage
 
-    _, fn, ext= split_filename(t1w)
-
+    _, t1w_fn, ext= split_filename(t1w)
     
     if manual_inside:
         t1w_mask = image.math_img('(t1w_mask + manual_inside) > 0',
@@ -52,9 +51,15 @@ def add_skull_to_t1w(t1w, inv2, t1w_mask,
                                   manual_inside=manual_inside)
 
     if manual_outside:
+        # Stuff like dura should be put to 0, not just multiplied with INV2
         t1w = image.math_img('t1w * (np.ones_like(t1w) - manual_outside)',
                              t1w=t1w,
                              manual_outside=manual_outside)
+
+        t1w_mask = image.math_img('(t1w_mask - manual_outside) > 0',
+                                  t1w_mask=t1w_mask,
+                                  manual_outside=manual_outside)
+
 
 
     new_t1w = image.math_img('t1w * t1w_mask * np.mean(inv2[t1w_mask == 1]/np.max(inv2))'
@@ -79,15 +84,22 @@ def add_skull_to_t1w(t1w, inv2, t1w_mask,
             dilated_dura_mask = image.math_img('dilated_dura_mask - manual_inside > 0',
                                                dilated_dura_mask=dilated_dura_mask,
                                                manual_inside=manual_inside)
+
         new_t1w = image.math_img('t1w * (np.ones_like(dura_mask) - dura_mask)',
                                   t1w=new_t1w,
                                   dura_mask=dilated_dura_mask)
 
-    new_fn = os.path.abspath('{}_masked{}'.format(fn, ext))
+        t1w_mask = image.math_img('(t1w_mask - dilated_dura_mask) > 0',
+                                  t1w_mask=t1w_mask,
+                                  dilated_dura_mask=dilated_dura_mask)
 
-    new_t1w.to_filename(new_fn)
+    new_t1w_fn = os.path.abspath('{}_masked{}'.format(t1w_fn, ext))
+    new_t1w.to_filename(new_t1w_fn)
 
-    return new_fn
+    new_mask_fn= os.path.abspath('{}_brainmask{}'.format(t1w_fn, ext))
+    t1w_mask.to_filename(new_mask_fn)
+
+    return new_t1w_fn, new_mask_fn
 
 
 def main(sourcedata,
@@ -199,20 +211,21 @@ def init_masking_wf(name='mask_wf',
     wf.connect(inputnode, 't1map', mask_t1map, 'in_file')
     wf.connect(afni_mask, 'out_file', mask_t1map, 'mask_file')
 
-    mask_t1w = pe.Node(niu.Function(function=add_skull_to_t1w,
+    t1w_masker = pe.Node(niu.Function(function=mask_t1w,
                                     input_names=['t1w', 'inv2', 't1w_mask',
                                                  'dura_mask', 'manual_inside', 
                                                  'manual_outside'],
-                                    output_names=['out_file']),
-                       name='mask_t1w')
+                                    output_names=['out_file',
+                                                  'brain_mask']),
+                       name='t1w_masker')
 
 
-    wf.connect(inputnode, 't1w', mask_t1w, 't1w')
-    wf.connect(inputnode, 'manual_inside', mask_t1w, 'manual_inside')
-    wf.connect(inputnode, 'manual_outside', mask_t1w, 'manual_outside')
-    wf.connect(n4, 'output_image', mask_t1w, 'inv2')
-    wf.connect(afni_mask, 'out_file', mask_t1w, 't1w_mask')
-    wf.connect(threshold_dura, 'out_file', mask_t1w, 'dura_mask')
+    wf.connect(inputnode, 't1w', t1w_masker, 't1w')
+    wf.connect(inputnode, 'manual_inside', t1w_masker, 'manual_inside')
+    wf.connect(inputnode, 'manual_outside', t1w_masker, 'manual_outside')
+    wf.connect(n4, 'output_image', t1w_masker, 'inv2')
+    wf.connect(afni_mask, 'out_file', t1w_masker, 't1w_mask')
+    wf.connect(threshold_dura, 'out_file', t1w_masker, 'dura_mask')
 
 
     ds_t1map = pe.Node(DerivativesDataSink(base_directory=derivatives,
@@ -241,21 +254,21 @@ def init_masking_wf(name='mask_wf',
                                          suffix='mask'),
                                          name='ds_dura')
 
-    ds_afni = pe.Node(DerivativesDataSink(base_directory=derivatives,
+    ds_brainmask = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
                                          out_path_base='masked_mp2rages',
-                                         desc='afnibrain',
+                                         desc='brainmask',
                                          suffix='mask'),
-                                         name='ds_afni')
+                                         name='ds_brainmask')
 
     wf.connect(inputnode, 't1w', ds_t1w, 'source_file')
-    wf.connect(mask_t1w, 'out_file', ds_t1w, 'in_file')
+    wf.connect(t1w_masker, 'out_file', ds_t1w, 'in_file')
 
     wf.connect(inputnode, 't1w', ds_dura, 'source_file')
     wf.connect(threshold_dura, 'out_file', ds_dura, 'in_file')
 
-    wf.connect(inputnode, 't1w', ds_afni, 'source_file')
-    wf.connect(afni_mask, 'out_file', ds_afni, 'in_file')
+    wf.connect(inputnode, 't1w', ds_brainmask, 'source_file')
+    wf.connect(t1w_masker, 'brain_mask', ds_brainmask, 'in_file')
 
     return wf
 
