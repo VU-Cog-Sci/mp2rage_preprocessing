@@ -7,6 +7,7 @@ from nipype.interfaces import afni
 from nipype.interfaces import fsl
 from nipype.interfaces import utility as niu
 from fmriprep.interfaces import DerivativesDataSink
+from utils import get_derivative
 
 
 def nighres_skullstrip(inv2, t1w, t1map):
@@ -33,7 +34,10 @@ def nighres_dura_masker(inv2, inv2_mask):
     return results['result'].get_filename()
 
 
-def add_skull_to_t1w(t1w, inv2, t1w_mask, dura_mask=None):
+def add_skull_to_t1w(t1w, inv2, t1w_mask, 
+                     manual_inside=None, manual_outside=None,
+                     dura_mask=None):
+
     from nilearn import image
     import os
     from nipype.utils.filemanip import split_filename
@@ -41,7 +45,20 @@ def add_skull_to_t1w(t1w, inv2, t1w_mask, dura_mask=None):
 
     _, fn, ext= split_filename(t1w)
 
-    new_t1w = image.math_img('t1w * t1w_mask * np.mean(inv2[t1w_mask == 1]/np.max(inv2)) + t1w * inv2/np.max(inv2) * (1-t1w_mask)',
+    
+    if manual_inside:
+        t1w_mask = image.math_img('(t1w_mask + manual_inside) > 0',
+                                  t1w_mask=t1w_mask,
+                                  manual_inside=manual_inside)
+
+    if manual_outside:
+        t1w = image.math_img('t1w * (np.ones_like(t1w) - manual_outside)',
+                             t1w=t1w,
+                             manual_outside=manual_outside)
+
+
+    new_t1w = image.math_img('t1w * t1w_mask * np.mean(inv2[t1w_mask == 1]/np.max(inv2))'
+                             '+ t1w * inv2/np.max(inv2) * (1-t1w_mask)',
                               t1w=t1w,
                               t1w_mask=t1w_mask,
                               inv2=inv2)
@@ -57,12 +74,14 @@ def add_skull_to_t1w(t1w, inv2, t1w_mask, dura_mask=None):
                                            t1w_mask=t1w_mask,
                                            dura_mask=dura_mask,
                                            dilated_dura_mask=dilated_dura_mask)
-
-        # Put everything in dilated dura at 0
+        
+        if manual_inside:
+            dilated_dura_mask = image.math_img('dilated_dura_mask - manual_inside > 0',
+                                               dilated_dura_mask=dilated_dura_mask,
+                                               manual_inside=manual_inside)
         new_t1w = image.math_img('t1w * (np.ones_like(dura_mask) - dura_mask)',
                                   t1w=new_t1w,
                                   dura_mask=dilated_dura_mask)
-        
 
     new_fn = os.path.abspath('{}_masked{}'.format(fn, ext))
 
@@ -95,6 +114,21 @@ def main(sourcedata,
                          subject,
                          suffix='T1map')
 
+
+    manual_outside = get_derivative(derivatives, type='manual_segmentation',
+                                    modality='anat', subject=subject,
+                                    suffix='mask', description='outside',
+                                    space='average', session=session,
+                                    check_exists=False)
+
+    manual_inside = get_derivative(derivatives, type='manual_segmentation',
+                                    modality='anat', subject=subject,
+                                    suffix='mask', description='gm',
+                                    space='average', session=session,
+                                    check_exists=False)
+
+
+
     wf_name = 'mask_wf_{}'.format(subject)
     mask_wf = init_masking_wf(name=wf_name, num_threads=num_threads)
     mask_wf.base_dir = '/workflow_folders'
@@ -102,6 +136,8 @@ def main(sourcedata,
     mask_wf.inputs.inputnode.inv2 = inv2
     mask_wf.inputs.inputnode.t1w = t1w
     mask_wf.inputs.inputnode.t1map = t1map
+    mask_wf.inputs.inputnode.manual_inside = manual_inside
+    mask_wf.inputs.inputnode.manual_outside = manual_outside
 
     mask_wf.run()
 
@@ -114,7 +150,9 @@ def init_masking_wf(name='mask_wf',
 
     inputnode = pe.Node(niu.IdentityInterface(fields=['inv2',
                                                       't1w',
-                                                      't1map'],
+                                                      't1map',
+                                                      'manual_inside',
+                                                      'manual_outside'],
                                               ),
                         name='inputnode')
 
@@ -162,12 +200,16 @@ def init_masking_wf(name='mask_wf',
     wf.connect(afni_mask, 'out_file', mask_t1map, 'mask_file')
 
     mask_t1w = pe.Node(niu.Function(function=add_skull_to_t1w,
-                                    input_names=['t1w', 'inv2', 't1w_mask', 'dura_mask'],
+                                    input_names=['t1w', 'inv2', 't1w_mask',
+                                                 'dura_mask', 'manual_inside', 
+                                                 'manual_outside'],
                                     output_names=['out_file']),
                        name='mask_t1w')
 
 
     wf.connect(inputnode, 't1w', mask_t1w, 't1w')
+    wf.connect(inputnode, 'manual_inside', mask_t1w, 'manual_inside')
+    wf.connect(inputnode, 'manual_outside', mask_t1w, 'manual_outside')
     wf.connect(n4, 'output_image', mask_t1w, 'inv2')
     wf.connect(afni_mask, 'out_file', mask_t1w, 't1w_mask')
     wf.connect(threshold_dura, 'out_file', mask_t1w, 'dura_mask')
