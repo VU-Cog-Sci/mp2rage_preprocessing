@@ -36,18 +36,12 @@ COPY nighres /nighres
 RUN cd /nighres \
     && python3 -m pip install --upgrade pip jcc \
     && ./build.sh \
-    && bash -c "source activate neuro && python setup.py install"
+    && bash -c "source activate neuro && python setup.py develop"
     
-RUN cd /tmp \
-    && wget -q https://github.com/spinoza-centre/spynoza/archive/7t_hires.zip \
-    && unzip -q 7t_hires.zip && mv spynoza-7t_hires /spynoza
-RUN bash -c "source activate neuro && pip uninstall -y spynoza && cd /spynoza && python setup.py develop"
-
 COPY ./analysis /src
 COPY nipype.cfg /root/.nipype/nipype.cfg
 
 COPY ./fmriprep /fmriprep
-
 RUN bash -c "source activate neuro && pip uninstall -y fmriprep && cd /fmriprep && python setup.py develop"
 
 COPY pymp2rage /pymp2rage
@@ -58,3 +52,4 @@ RUN bash -c "source activate neuro && pip uninstall -y pybids && cd /pybids && p
 
 COPY spynoza /spynoza
 RUN bash -c "source activate neuro && pip uninstall -y spynoza && cd /pybids && python setup.py develop"
+
