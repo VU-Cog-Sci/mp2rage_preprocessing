@@ -214,13 +214,6 @@ def init_masking_wf(name='mask_wf',
     wf.connect(afni_mask, 'out_file', mask_t1w, 't1w_mask')
     wf.connect(threshold_dura, 'out_file', mask_t1w, 'dura_mask')
 
-    mask_t1w_keep_dura = pe.Node(niu.Function(function=add_skull_to_t1w,
-                                              input_names=['t1w', 'inv2', 't1w_mask', 'dura_mask'],
-                                              output_names=['out_file']),
-                       name='mask_t1w_keep_dura')
-    wf.connect(inputnode, 't1w', mask_t1w_keep_dura, 't1w')
-    wf.connect(n4, 'output_image', mask_t1w_keep_dura, 'inv2')
-    wf.connect(afni_mask, 'out_file', mask_t1w_keep_dura, 't1w_mask')
 
     ds_t1map = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
@@ -236,16 +229,10 @@ def init_masking_wf(name='mask_wf',
     ds_t1w = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
                                          out_path_base='masked_mp2rages',
-                                         desc='masked_no_dura',
+                                         desc='masked',
                                          suffix='T1w'),
                                          name='ds_t1w')
 
-    ds_t1w_keep_dura = pe.Node(DerivativesDataSink(base_directory=derivatives,
-                                         keep_dtype=False,
-                                         out_path_base='masked_mp2rages',
-                                         desc='masked',
-                                         suffix='T1w'),
-                                         name='ds_t1w_keep_dura')
 
     ds_dura = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
@@ -263,9 +250,6 @@ def init_masking_wf(name='mask_wf',
 
     wf.connect(inputnode, 't1w', ds_t1w, 'source_file')
     wf.connect(mask_t1w, 'out_file', ds_t1w, 'in_file')
-
-    wf.connect(inputnode, 't1w', ds_t1w_keep_dura, 'source_file')
-    wf.connect(mask_t1w_keep_dura, 'out_file', ds_t1w_keep_dura, 'in_file')
 
     wf.connect(inputnode, 't1w', ds_dura, 'source_file')
     wf.connect(threshold_dura, 'out_file', ds_dura, 'in_file')
