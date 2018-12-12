@@ -265,7 +265,7 @@ def init_masking_wf(name='mask_wf',
     wf.connect(t1w_masker, 'out_file', ds_t1w, 'in_file')
 
     wf.connect(inputnode, 't1w', ds_dura, 'source_file')
-    wf.connect(threshold_dura, 'out_file', ds_dura, 'in_file')
+    wf.connect(dura_masker, 'duramask', ds_dura, 'in_file')
 
     wf.connect(inputnode, 't1w', ds_brainmask, 'source_file')
     wf.connect(t1w_masker, 'brain_mask', ds_brainmask, 'in_file')
