@@ -142,38 +142,70 @@ def init_combine_mp2rage_wf(sourcedata,
     wf.connect(make_t1w, 't1map', transform_t1map_wf, 'inputnode.in_files')
     wf.connect(convert2itk, 'itk_transform', transform_t1map_wf, 'inputnode.transforms')
 
-    ds_t1w = pe.Node(DerivativesDataSink(base_directory=derivatives,
+    ds_t1w = pe.MapNode(DerivativesDataSink(base_directory=derivatives,
+                                         keep_dtype=False,
+                                         out_path_base='t1w',
+                                         suffix='T1w'),
+                        iterfield=['in_file', 'source_file'],
+                     name='ds_t1w')
+
+    reorient_t1w = pe.MapNode(Reorient(),
+                              iterfield=['in_file'],
+                           name='reorient_t1w')
+
+    wf.connect(make_t1w, 't1w_uni', reorient_t1w, 'in_file')
+    wf.connect(reorient_t1w, 'out_file', ds_t1w, 'in_file')
+    wf.connect(get_first_inversion, 'inv1', ds_t1w, 'source_file')
+
+    ds_t1map = pe.MapNode(DerivativesDataSink(base_directory=derivatives,
+                                         keep_dtype=False,
+                                         out_path_base='t1map',
+                                         suffix='T1w'),
+                        iterfield=['in_file', 'source_file'],
+                     name='ds_t1map')
+
+    reorient_t1map = pe.MapNode(Reorient(),
+                              iterfield=['in_file'],
+                           name='reorient_t1map')
+
+    wf.connect(make_t1w, 't1map', reorient_t1map, 'in_file')
+    wf.connect(reorient_t1map, 'out_file', ds_t1map, 'in_file')
+    wf.connect(get_first_inversion, 'inv1', ds_t1map, 'source_file')
+
+    ds_t1w_average = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
                                          out_path_base='averaged_mp2rages',
                                          suffix='T1w',
                                          space='average'),
-                                         name='ds_t1w')
+                                         name='ds_t1w_average')
+
+
 
     rename = pe.Node(niu.Rename(use_fullpath=True), name='rename')
     rename.inputs.format_string = '%(path)s/sub-%(subject_id)s_ses-%(session)s_MPRAGE.nii.gz'
     rename.inputs.parse_string = '(?P<path>.+)/sub-(?P<subject_id>.+)_ses-(?P<session>.+)_acq-.+_MPRAGE.nii(.gz)?'
 
     wf.connect(get_first_inversion, ('inv1', _pickone), rename, 'in_file')
-    reorient_t1w = pe.Node(Reorient(),
-                           name='reorient_t1w')
-    wf.connect(transform_t1w_wf, 'outputnode.mean_image', reorient_t1w, 'in_file')
-    wf.connect(reorient_t1w, 'out_file', ds_t1w, 'in_file')
-    wf.connect(rename, 'out_file', ds_t1w, 'source_file')
+    reorient_average_t1w = pe.Node(Reorient(),
+                           name='reorient_average_t1w')
+    wf.connect(transform_t1w_wf, 'outputnode.mean_image', reorient_average_t1w, 'in_file')
+    wf.connect(reorient_average_t1w, 'out_file', ds_t1w_average, 'in_file')
+    wf.connect(rename, 'out_file', ds_t1w_average, 'source_file')
 
 
-    ds_t1map = pe.Node(DerivativesDataSink(base_directory=derivatives,
+    ds_t1map_average = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
                                          out_path_base='averaged_mp2rages',
                                          suffix='T1map',
                                          space='average'),
-                                         name='ds_t1map')
+                                         name='ds_t1map_average')
 
 
-    reorient_t1map = pe.Node(Reorient(),
-                           name='reorient_t1map')
-    wf.connect(rename, 'out_file', ds_t1map, 'source_file')
-    wf.connect(transform_t1map_wf, 'outputnode.mean_image', reorient_t1map, 'in_file')
-    wf.connect(reorient_t1map, 'out_file', ds_t1map, 'in_file')
+    reorient_t1map_average = pe.Node(Reorient(),
+                           name='reorient_t1map_average')
+    wf.connect(rename, 'out_file', ds_t1map_average, 'source_file')
+    wf.connect(transform_t1map_wf, 'outputnode.mean_image', reorient_t1map_average, 'in_file')
+    wf.connect(reorient_t1map_average, 'out_file', ds_t1map_average, 'in_file')
 
     ds_inv2 = pe.Node(DerivativesDataSink(base_directory=derivatives,
                                          keep_dtype=False,
