@@ -1,6 +1,6 @@
 import argparse
-from fmriprep.interfaces import DerivativesDataSink
 from bids import BIDSLayout
+from fmriprep.interfaces import DerivativesDataSink
 import re
 import pandas as pd
 import os

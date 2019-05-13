@@ -15,6 +15,7 @@ def get_inv(mp2rage_parameters, inv=1, echo=1):
 def fit_mp2rage(mp2rage_parameters, return_images=['t1w_uni', 't1map']):
     import pymp2rage
     import os
+    print(mp2rage_parameters)
 
     if 'echo_times' in mp2rage_parameters:
         mp2rage = pymp2rage.MEMP2RAGE(**mp2rage_parameters)
@@ -33,29 +34,33 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
     from bids import BIDSLayout
     import re
     import os
+    import os.path as op
     import glob
     import json
     import numpy as np
 
-    layout = BIDSLayout(sourcedata)
+    layout = BIDSLayout(sourcedata, 
+		    validate=False)
 
     mp2rage_files = layout.get(subject=subject, 
                                session=session, 
                                acquisition=acquisition,
                                suffix='MPRAGE', 
                                extensions=['.nii', '.nii.gz'])
+		
     print(mp2rage_files)
 
     reg = re.compile('.*/sub-(?P<subject>.+)_ses-(?P<session>.+)_acq-(?P<acquisition>.+)_inv-(?P<inv>[0-9]+)(_echo-(?P<echo>[0-9]+))?(_part-(?P<part>.+))?_MPRAGE.(?P<extension>nii|nii\.gz|json)')
 
     data = []
     for file in mp2rage_files:
-        print(file.filename)
-        if not reg.match(file.filename):
-            print('ERROR WITH {}'.format(file))
-        data.append(reg.match(file.filename).groupdict())
-        data[-1]['filename'] = file.filename
+        print(file.path)
+        if not reg.match(file.path):
+            print('ERROR WITH {}'.format(file.path))
+        data.append(reg.match(file.path).groupdict())
+        data[-1]['filename'] = file.path
     data = pd.DataFrame(data)
+    print(data)
 
     folder = os.path.dirname(data.iloc[0].filename)
     json_files = glob.glob(os.path.join(folder, '*.json'))
@@ -68,7 +73,9 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
                 json_data[-1].update(json.load(f))
 
     json_data = pd.DataFrame(json_data)
-    json_data.drop(columns=['part', 'extension'], inplace=True)
+    print(json_data)
+    json_data.drop('part', axis=1, inplace=True)
+    json_data.drop('extension', axis=1, inplace=True)
     data = data.merge(json_data, on=['subject', 'session', 'acquisition', 'inv', 'echo'])
     
     data.drop(columns=['subject', 'session'])
@@ -82,7 +89,7 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
     B1map = layout.get(subject=subject, session=session, suffix='B1map', extensions=['.nii', '.nii.gz'])
     
     if len(B1map) > 0:
-        B1map = B1map[0].filename
+        B1map = B1map[0].path
         data['B1map'] = B1map
 
     multi_echo_bool = len(data.loc[acquisition,2, :, 'mag']) > 2
