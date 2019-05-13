@@ -28,10 +28,10 @@ RUN bash -c "source activate neuro && pip install lxml --upgrade"
 RUN apt-get update -qq && apt-get install -y python python-pip python-dev build-essential software-properties-common openjdk-8-jdk
 RUN ln -svT "/usr/lib/jvm/java-8-openjdk-$(dpkg --print-architecture)" /docker-java-home
 ENV JAVA_HOME /docker-java-home
-ENV JCC_JDK /docker-java-home
+ENV JCC_JDK /docker-java-home 
 RUN apt-get install -y jcc
 
-COPY nighres /nighres
+COPY nighres /nighres 
 
 RUN cd /nighres \
     && bash -c "source activate neuro && pip install jcc" \
@@ -42,7 +42,7 @@ COPY ./analysis /src
 COPY nipype.cfg /root/.nipype/nipype.cfg
 
 RUN bash -c "source activate neuro && pip uninstall -y pandas && pip install pandas==0.23" \
-    && bash -c "source activate neuro && pip uninstall -y templateflow && pip install templateflow==0.1.7"
+    && bash -c "source activate neuro && pip uninstall -y templateflow && pip install templateflow"
 
 COPY ./fmriprep /fmriprep
 RUN bash -c "source activate neuro && pip uninstall -y fmriprep && cd /fmriprep && python setup.py develop"
@@ -56,3 +56,5 @@ RUN bash -c "source activate neuro && pip uninstall -y pybids && cd /pybids && p
 COPY spynoza /spynoza
 RUN bash -c "source activate neuro && pip uninstall -y spynoza && cd /pybids && python setup.py develop"
 
+RUN bash -c "source activate neuro && pip install scikit-image --upgrade"
+RUN bash -c "source activate neuro && pip install templateflow --upgrade"
