@@ -15,6 +15,7 @@ def get_inv(mp2rage_parameters, inv=1, echo=1):
 def fit_mp2rage(mp2rage_parameters, return_images=['t1w_uni', 't1map']):
     import pymp2rage
     import os
+    print(mp2rage_parameters)
 
     if 'echo_times' in mp2rage_parameters:
         mp2rage = pymp2rage.MEMP2RAGE(**mp2rage_parameters)
@@ -88,7 +89,7 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
     B1map = layout.get(subject=subject, session=session, suffix='B1map', extensions=['.nii', '.nii.gz'])
     
     if len(B1map) > 0:
-        B1map = B1map[0].filename
+        B1map = B1map[0].path
         data['B1map'] = B1map
 
     multi_echo_bool = len(data.loc[acquisition,2, :, 'mag']) > 2
