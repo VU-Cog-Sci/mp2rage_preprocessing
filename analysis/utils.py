@@ -33,29 +33,33 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
     from bids import BIDSLayout
     import re
     import os
+    import os.path as op
     import glob
     import json
     import numpy as np
 
-    layout = BIDSLayout(sourcedata)
+    layout = BIDSLayout(sourcedata, 
+		    validate=False)
 
     mp2rage_files = layout.get(subject=subject, 
                                session=session, 
                                acquisition=acquisition,
                                suffix='MPRAGE', 
                                extensions=['.nii', '.nii.gz'])
+		
     print(mp2rage_files)
 
     reg = re.compile('.*/sub-(?P<subject>.+)_ses-(?P<session>.+)_acq-(?P<acquisition>.+)_inv-(?P<inv>[0-9]+)(_echo-(?P<echo>[0-9]+))?(_part-(?P<part>.+))?_MPRAGE.(?P<extension>nii|nii\.gz|json)')
 
     data = []
     for file in mp2rage_files:
-        print(file.filename)
-        if not reg.match(file.filename):
-            print('ERROR WITH {}'.format(file))
-        data.append(reg.match(file.filename).groupdict())
-        data[-1]['filename'] = file.filename
+        print(file.path)
+        if not reg.match(file.path):
+            print('ERROR WITH {}'.format(file.path))
+        data.append(reg.match(file.path).groupdict())
+        data[-1]['filename'] = file.path
     data = pd.DataFrame(data)
+    print(data)
 
     folder = os.path.dirname(data.iloc[0].filename)
     json_files = glob.glob(os.path.join(folder, '*.json'))
@@ -68,7 +72,9 @@ def get_mp2rage_pars(sourcedata, subject, session, acquisition):
                 json_data[-1].update(json.load(f))
 
     json_data = pd.DataFrame(json_data)
-    json_data.drop(columns=['part', 'extension'], inplace=True)
+    print(json_data)
+    json_data.drop('part', axis=1, inplace=True)
+    json_data.drop('extension', axis=1, inplace=True)
     data = data.merge(json_data, on=['subject', 'session', 'acquisition', 'inv', 'echo'])
     
     data.drop(columns=['subject', 'session'])

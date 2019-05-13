@@ -34,12 +34,15 @@ RUN apt-get install -y jcc
 COPY nighres /nighres
 
 RUN cd /nighres \
-    && python3 -m pip install --upgrade pip jcc \
-    && ./build.sh \
+    && bash -c "source activate neuro && pip install jcc" \
+    && bash -c "./build_conda.sh neuro" \
     && bash -c "source activate neuro && python setup.py develop"
     
 COPY ./analysis /src
 COPY nipype.cfg /root/.nipype/nipype.cfg
+
+RUN bash -c "source activate neuro && pip uninstall -y pandas && pip install pandas==0.23" \
+    && bash -c "source activate neuro && pip uninstall -y templateflow && pip install templateflow==0.1.7"
 
 COPY ./fmriprep /fmriprep
 RUN bash -c "source activate neuro && pip uninstall -y fmriprep && cd /fmriprep && python setup.py develop"

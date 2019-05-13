@@ -112,7 +112,7 @@ def main(sourcedata,
     if session is None:
         session = '.*'
 
-    derivatives_layout = BIDSLayout(os.path.join(derivatives, 'averaged_mp2rages'))
+    derivatives_layout = BIDSLayout(os.path.join(derivatives, 'averaged_mp2rages'), validate=False)
 
     inv2 = get_bids_file(derivatives_layout, 
                          subject,
@@ -232,8 +232,7 @@ def init_masking_wf(name='mask_wf',
                                          keep_dtype=False,
                                          out_path_base='masked_mp2rages',
                                          suffix='T1map',
-                                         desc='masked',
-                                         space='average'),
+                                         desc='masked'),
                                          name='ds_t1map')
 
     wf.connect(inputnode, 't1map', ds_t1map, 'source_file')
